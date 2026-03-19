@@ -86,7 +86,13 @@ import {
   Tooltip, 
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
 } from 'recharts';
 import {
   ComposableMap,
@@ -98,8 +104,11 @@ import {
 } from "react-simple-maps";
 import { User, RFQ, Product, Offer, Shipment, Invoice, SampleRequest, Supplier } from './types';
 import { COUNTRIES, SOURCING_TERMS } from './constants';
+import { db } from './firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { LandingPage } from './components/LandingPage';
 import { RegisterView } from './components/RegisterView';
+import { DocumentCenter } from './components/DocumentCenter';
 import { HelpCenter } from './components/HelpCenter';
 import { ServicesPage } from './components/ServicesPage';
 import { SecurityPage } from './components/SecurityPage';
@@ -150,7 +159,7 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
+        <div className="min-h-dvh flex items-center justify-center bg-zinc-50 p-4">
           <div className="max-w-md w-full bg-white dark:bg-zinc-900 p-8 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800 text-center">
             <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <AlertCircle className="w-8 h-8" />
@@ -206,7 +215,7 @@ const TermsModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+        className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-2xl max-h-[80dvh] overflow-hidden flex flex-col shadow-2xl"
       >
         <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
           <div>
@@ -267,7 +276,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     return (
       <input
         ref={ref}
-        className={cn('flex h-10 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm ring-offset-white dark:ring-offset-zinc-950 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-zinc-900 dark:text-zinc-100', className)}
+        className={cn('flex h-10 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-base ring-offset-white dark:ring-offset-zinc-950 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-zinc-900 dark:text-zinc-100', className)}
         {...props}
         value={value}
       />
@@ -374,7 +383,7 @@ function ConfirmationModal({
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard' | 'requests' | 'create-rfq' | 'rfq-details' | 'shipments' | 'shipment-details' | 'create-shipment' | 'finance' | 'analytics' | 'offers' | 'settings' | 'profile' | 'help' | 'services' | 'security' | 'contact' | 'careers' | 'privacy' | 'terms' | 'cookies' | 'blogs' | 'blog-post' | 'messages' | 'admin-dashboard'>('landing');
+  const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard' | 'requests' | 'create-rfq' | 'rfq-details' | 'shipments' | 'shipment-details' | 'create-shipment' | 'finance' | 'analytics' | 'offers' | 'settings' | 'profile' | 'help' | 'services' | 'security' | 'contact' | 'careers' | 'privacy' | 'terms' | 'cookies' | 'blogs' | 'blog-post' | 'messages' | 'admin-dashboard' | 'documents'>('landing');
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -520,6 +529,53 @@ export default function App() {
       fetchNotifications();
     }
   }, [user, isAuthReady]);
+
+  // Real-time Firestore listener for shipments
+  useEffect(() => {
+    if (!user?.uid || !isAuthReady) return;
+
+    // Listen for real-time updates from Firestore for shipments
+    let q = query(collection(db, 'shipments'));
+    
+    if (user.role === 'customer') {
+      q = query(collection(db, 'shipments'), where('customer_uid', '==', user.uid));
+    } else if (user.role === 'sourcing_agent') {
+      q = query(collection(db, 'shipments'), where('sourcing_agent_uid', '==', user.uid));
+    } else if (user.role === 'shipping_agent') {
+      q = query(collection(db, 'shipments'), where('shipping_agent_uid', '==', user.uid));
+    }
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const firestoreShipments = snapshot.docs.map(doc => ({ id: parseInt(doc.id), ...doc.data() } as any));
+      
+      setShipments(prev => {
+        const newShipments = [...prev];
+        firestoreShipments.forEach(fs => {
+          const index = newShipments.findIndex(s => s.id === fs.id);
+          if (index !== -1) {
+            // Merge Firestore data (latest status/updates) with SQLite data (items)
+            newShipments[index] = { ...newShipments[index], ...fs };
+          } else {
+            // If it's a new shipment from Firestore that we don't have in SQLite yet,
+            // we might need to fetch it from SQLite to get the full details (items).
+            // For now, let's just add it.
+            newShipments.push(fs);
+          }
+        });
+        return newShipments;
+      });
+
+      // Also update selected shipment if it's the one being updated
+      if (selectedShipment) {
+        const updated = firestoreShipments.find(fs => fs.id === selectedShipment.id);
+        if (updated) {
+          setSelectedShipment(prev => prev ? { ...prev, ...updated } : null);
+        }
+      }
+    });
+
+    return () => unsub();
+  }, [user?.uid, user?.role, isAuthReady]);
 
   const handleNotificationClick = async (notification: any) => {
     // Mark as read
@@ -943,7 +999,7 @@ export default function App() {
   if (isPublicView) {
     return (
       <AppErrorBoundary>
-        <div className="min-h-screen bg-white dark:bg-zinc-950 transition-colors duration-300">
+        <div className="min-h-dvh bg-white dark:bg-zinc-950 transition-colors duration-300">
         {!['login', 'register'].includes(view) && (
           <Navbar 
             onLogin={() => setView('login')} 
@@ -1055,7 +1111,7 @@ export default function App() {
         )}
 
         {view === 'login' && (
-          <div className="min-h-screen flex bg-white dark:bg-zinc-950 overflow-hidden selection:bg-primary/10 selection:text-primary transition-colors duration-300">
+          <div className="min-h-dvh flex bg-white dark:bg-zinc-950 overflow-hidden selection:bg-primary/10 selection:text-primary transition-colors duration-300">
             {/* Left Side: Branding & Visual (Desktop Only) */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-zinc-950 items-center justify-center p-20">
               <div className="absolute inset-0 overflow-hidden">
@@ -1124,7 +1180,7 @@ export default function App() {
             </div>
 
             {/* Right Side: Login Form */}
-            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 pt-24 md:p-12 lg:p-24 bg-white dark:bg-zinc-950 relative">
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-6 pt-24 pb-[var(--safe-bottom)] md:p-12 lg:p-24 bg-white dark:bg-zinc-950 relative overflow-y-auto transition-colors duration-300">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary lg:hidden" />
               
               <button 
@@ -1148,10 +1204,10 @@ export default function App() {
                 </div>
 
                 <div className="space-y-8">
-                  <Card className="p-8 md:p-10 border-none shadow-2xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 rounded-[2.5rem] transition-colors">
+                  <Card className="p-4 sm:p-8 md:p-10 border-none shadow-2xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 rounded-[2.5rem] transition-colors">
                     <form onSubmit={handleLogin} className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 ml-1">
+                        <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 ml-1">
                           {t('emailAddress')}
                         </label>
                         <div className="relative group">
@@ -1168,7 +1224,7 @@ export default function App() {
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between ml-1">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+                          <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                             {t('currentPassword')}
                           </label>
                         </div>
@@ -1190,7 +1246,7 @@ export default function App() {
                           </button>
                         </div>
                         <div className="flex justify-end pt-1">
-                          <button type="button" className="text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:text-secondary transition-colors">
+                          <button type="button" className="text-xs font-black uppercase tracking-[0.2em] text-primary hover:text-secondary transition-colors">
                             Forgot Password?
                           </button>
                         </div>
@@ -1297,7 +1353,7 @@ export default function App() {
 
   return (
     <AppErrorBoundary>
-      <div className="h-screen bg-[#F8F9FA] dark:bg-zinc-950 flex overflow-hidden transition-colors duration-300">
+      <div className="h-dvh bg-[#F8F9FA] dark:bg-zinc-950 flex overflow-hidden transition-colors duration-300">
       {/* Sidebar Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -1313,7 +1369,7 @@ export default function App() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "bg-white dark:bg-zinc-900 border-r border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 ease-in-out fixed lg:static inset-y-0 z-50 lg:z-auto overflow-y-auto h-full",
+        "bg-white dark:bg-zinc-900 border-r border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 ease-in-out fixed lg:static inset-y-0 z-50 lg:z-auto overflow-y-auto h-full pt-[var(--safe-top)] pb-[var(--safe-bottom)]",
         isSidebarCollapsed ? "w-20" : "w-64",
         lang === 'ar' ? "right-0" : "left-0",
         isMobileMenuOpen ? "translate-x-0" : (lang === 'ar' ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0")
@@ -1372,6 +1428,7 @@ export default function App() {
                   <SidebarItem icon={<Tag className="w-4 h-4" />} label={t('offers')} active={view === 'offers'} onClick={() => navigateTo('offers')} badge={offersCount} collapsed={isSidebarCollapsed} />
                 )}
                 <SidebarItem icon={<Truck className="w-4 h-4" />} label={user?.role === 'customer' ? t('orders') : t('shipments')} active={view === 'shipments' || view === 'shipment-details'} onClick={() => navigateTo('shipments')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={<FileSignature className="w-4 h-4" />} label="Documents" active={view === 'documents'} onClick={() => navigateTo('documents')} collapsed={isSidebarCollapsed} />
               </div>
             </div>
 
@@ -1427,8 +1484,8 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[#F8F9FA] dark:bg-zinc-950 transition-colors duration-300">
-        <header className="h-20 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-40 transition-colors duration-300">
+      <main className="flex-1 overflow-y-auto bg-[#F8F9FA] dark:bg-zinc-950 transition-colors duration-300 pb-[var(--safe-bottom)]">
+        <header className="min-h-[5rem] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-40 transition-colors duration-300 pt-[var(--safe-top)] pb-2">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
@@ -1613,7 +1670,7 @@ export default function App() {
           </div>
         </header>
 
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
           {view === 'dashboard' && (
             <Dashboard 
               user={user!} 
@@ -1760,10 +1817,11 @@ export default function App() {
             <FinanceView 
               user={user!}
               invoices={invoices} 
+              shipments={shipments}
               analytics={financeAnalytics} 
               viewMode={viewMode}
               setViewMode={setViewMode}
-              onUpdate={() => { fetchInvoices(); fetchFinanceAnalytics(); }} 
+              onUpdate={() => { fetchInvoices(); fetchFinanceAnalytics(); fetchShipments(); }} 
               onChat={(id, type) => {
                 setChatContext({ id, type });
                 setIsFloatingChatOpen(true);
@@ -1771,6 +1829,7 @@ export default function App() {
             />
           )}
           {view === 'analytics' && <AnalyticsView analytics={financeAnalytics} />}
+          {view === 'documents' && <DocumentCenter user={user!} />}
           {view === 'settings' && (
             <SettingsView 
               user={user!} 
@@ -1815,7 +1874,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-6xl h-[85vh] overflow-hidden shadow-2xl border border-zinc-200 relative"
+              className="bg-white rounded-[2.5rem] w-full max-w-6xl h-[85dvh] overflow-hidden shadow-2xl border border-zinc-200 relative"
             >
               <button 
                 onClick={() => setIsFloatingChatOpen(false)}
@@ -1892,7 +1951,7 @@ function ProfileView({ user, onUpdate, t }: { user: User, onUpdate: (user: User)
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="p-8">
+      <Card className="p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="flex items-center gap-8 pb-8 border-b border-zinc-100 dark:border-zinc-800">
             <div className="relative group">
@@ -1914,7 +1973,7 @@ function ProfileView({ user, onUpdate, t }: { user: User, onUpdate: (user: User)
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">{t('businessIdentity')}</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{t('businessIdentity')}</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -1939,7 +1998,7 @@ function ProfileView({ user, onUpdate, t }: { user: User, onUpdate: (user: User)
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-sm font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                 {profile.role === 'customer' ? t('companyDetails') : 'Professional Details'}
               </h4>
               
@@ -2406,7 +2465,7 @@ function Dashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {['shipping_agent', 'sourcing_agent', 'admin'].includes(user.role) ? (
           <>
             <StatCard label={t('activeRfqs')} value={activeCount.toString()} icon={<FileText className="w-5 h-5" />} trend="+2 this week" />
@@ -2443,7 +2502,7 @@ function Dashboard({
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             {rfqs.filter(rfq => isOffer(rfq, user)).map(rfq => (
-              <Card key={rfq.id} className="p-6 bg-primary/5 border-primary/10 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => onSelectRfq(rfq, 'offers')}>
+              <Card key={rfq.id} className="p-4 sm:p-6 bg-primary/5 border-primary/10 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => onSelectRfq(rfq, 'offers')}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-6">
                     <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
@@ -3300,7 +3359,7 @@ function StatCard({ label, value, icon, color = 'primary', trend }: { label: str
   };
 
   return (
-    <Card className="p-8 border-none shadow-xl shadow-zinc-200/40 dark:shadow-none bg-white dark:bg-zinc-900 group hover:scale-[1.02] transition-all duration-300 rounded-[2rem]">
+    <Card className="p-4 sm:p-8 border-none shadow-xl shadow-zinc-200/40 dark:shadow-none bg-white dark:bg-zinc-900 group hover:scale-[1.02] transition-all duration-300 rounded-[2rem]">
       <div className="flex items-start justify-between mb-6">
         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6", colorMap[color])}>
           {icon}
@@ -3313,7 +3372,7 @@ function StatCard({ label, value, icon, color = 'primary', trend }: { label: str
         )}
       </div>
       <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">{label}</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-1">{label}</p>
         <h4 className="text-3xl font-black tracking-tighter text-zinc-900 dark:text-white">{value}</h4>
       </div>
     </Card>
@@ -4980,7 +5039,7 @@ function SampleRequestForm({ rfqId, offerId, onSuccess, onCancel }: { rfqId: num
   };
 
   return (
-    <Card className="p-8 bg-white border-zinc-100 shadow-2xl rounded-[2.5rem]">
+    <Card className="p-4 sm:p-8 bg-white border-zinc-100 shadow-2xl rounded-[2.5rem]">
       <div className="flex items-center gap-4 mb-8">
         <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
           <Package className="w-7 h-7" />
@@ -4993,7 +5052,7 @@ function SampleRequestForm({ rfqId, offerId, onSuccess, onCancel }: { rfqId: num
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sample Details & Requirements</label>
+          <label className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Sample Details & Requirements</label>
           <textarea
             value={details}
             onChange={(e) => setDetails(e.target.value)}
@@ -6413,7 +6472,7 @@ function SourcingAgentForm({ rfq, onSuccess }: { rfq: RFQ & { offers?: Offer[] }
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Quantity & Quality */}
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Quantity (Total)</label>
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Quantity (Total)</label>
               <div className="flex gap-2">
                 <Input 
                   value={quantity}
@@ -6423,7 +6482,7 @@ function SourcingAgentForm({ rfq, onSuccess }: { rfq: RFQ & { offers?: Offer[] }
                   className="h-14 rounded-2xl bg-zinc-50/50 border-zinc-200 font-bold" 
                 />
                 <div className="w-32 space-y-1">
-                  <label className="text-[8px] font-black uppercase tracking-[0.1em] text-zinc-400">MOQ</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">MOQ</label>
                   <Input 
                     value={moq}
                     onChange={(e) => setMoq(e.target.value)}
@@ -7529,10 +7588,158 @@ function ShipmentsView({
   );
 }
 
-function FinanceView({ user, invoices, analytics, viewMode, setViewMode, onUpdate, onChat }: { user: User, invoices: Invoice[], analytics: any, viewMode: 'grid' | 'table', setViewMode: (mode: 'grid' | 'table') => void, onUpdate: () => void, onChat: (id: string | number, type: 'RFQ' | 'Order' | 'Shipment' | 'Invoice') => void }) {
+function FinancialDashboard({ shipments }: { shipments: Shipment[] }) {
+  const totalRevenue = shipments.reduce((acc, s) => acc + (s.selling_price || 0), 0);
+  const totalPurchaseCost = shipments.reduce((acc, s) => acc + (s.purchase_cost || 0), 0);
+  const totalFreightCost = shipments.reduce((acc, s) => acc + (s.freight_cost || 0), 0);
+  const totalCustomsCost = shipments.reduce((acc, s) => acc + (s.customs_cost || 0), 0);
+  const totalCosts = totalPurchaseCost + totalFreightCost + totalCustomsCost;
+  const totalProfit = totalRevenue - totalCosts;
+  const averageMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+  const data = [
+    { name: 'Purchase', value: totalPurchaseCost, color: '#10b981' },
+    { name: 'Freight', value: totalFreightCost, color: '#3b82f6' },
+    { name: 'Customs', value: totalCustomsCost, color: '#f59e0b' },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="p-6 border-none bg-zinc-900 text-white shadow-2xl shadow-zinc-900/20 rounded-[2.5rem]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Revenue</p>
+              <p className="text-2xl font-black">${totalRevenue.toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-400 w-full" />
+          </div>
+        </Card>
+
+        <Card className="p-6 border border-zinc-100 bg-white shadow-xl shadow-zinc-200/10 rounded-[2.5rem]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Profit</p>
+              <p className="text-2xl font-black text-zinc-900">${totalProfit.toLocaleString()}</p>
+            </div>
+          </div>
+          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+            {averageMargin.toFixed(1)}% Margin
+          </p>
+        </Card>
+
+        <Card className="p-6 border border-zinc-100 bg-white shadow-xl shadow-zinc-200/10 rounded-[2.5rem]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center">
+              <CreditCard className="w-6 h-6 text-rose-500" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Costs</p>
+              <p className="text-2xl font-black text-zinc-900">${totalCosts.toLocaleString()}</p>
+            </div>
+          </div>
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+            {((totalCosts / (totalRevenue || 1)) * 100).toFixed(1)}% of Revenue
+          </p>
+        </Card>
+
+        <Card className="p-6 border border-zinc-100 bg-white shadow-xl shadow-zinc-200/10 rounded-[2.5rem]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center">
+              <Package className="w-6 h-6 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Shipments</p>
+              <p className="text-2xl font-black text-zinc-900">{shipments.length}</p>
+            </div>
+          </div>
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+            Active Tracking
+          </p>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="lg:col-span-2 p-8 border border-zinc-100 bg-white shadow-xl shadow-zinc-200/10 rounded-[3rem]">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-black text-zinc-900 uppercase tracking-wider">Shipment Performance</h3>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">Profit vs Costs per Shipment</p>
+            </div>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={shipments.slice(-10).map(s => ({
+                id: `S-${s.id}`,
+                profit: (s.selling_price || 0) - ((s.purchase_cost || 0) + (s.freight_cost || 0) + (s.customs_cost || 0)),
+                costs: (s.purchase_cost || 0) + (s.freight_cost || 0) + (s.customs_cost || 0)
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f1f1" />
+                <XAxis dataKey="id" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', padding: '15px' }}
+                  itemStyle={{ fontSize: '12px', fontWeight: '900', textTransform: 'uppercase' }}
+                />
+                <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="costs" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="p-8 border border-zinc-100 bg-white shadow-xl shadow-zinc-200/10 rounded-[3rem]">
+          <h3 className="text-xl font-black text-zinc-900 uppercase tracking-wider mb-8">Cost Breakdown</h3>
+          <div className="h-[250px] w-full mb-8">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={8}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-4">
+            {data.map((item) => (
+              <div key={item.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="text-xs font-black text-zinc-900 uppercase tracking-widest">{item.name}</span>
+                </div>
+                <span className="text-xs font-black text-zinc-900">${item.value.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function FinanceView({ user, invoices, shipments, analytics, viewMode, setViewMode, onUpdate, onChat }: { user: User, invoices: Invoice[], shipments: Shipment[], analytics: any, viewMode: 'grid' | 'table', setViewMode: (mode: 'grid' | 'table') => void, onUpdate: () => void, onChat: (id: string | number, type: 'RFQ' | 'Order' | 'Shipment' | 'Invoice') => void }) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'invoices' | 'dashboard'>('dashboard');
 
   if (!analytics) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -7740,6 +7947,21 @@ function FinanceView({ user, invoices, analytics, viewMode, setViewMode, onUpdat
     <div className="space-y-10">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex flex-wrap items-center gap-4">
+          <div className="flex bg-zinc-100 p-1 rounded-2xl">
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'dashboard' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+            >
+              Dashboard
+            </button>
+            <button 
+              onClick={() => setActiveTab('invoices')}
+              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'invoices' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+            >
+              Invoices
+            </button>
+          </div>
+          <div className="h-8 w-px bg-zinc-200 hidden md:block" />
           <ViewToggle mode={viewMode} onChange={setViewMode} />
           <div className="h-8 w-px bg-zinc-200 hidden md:block" />
           <div className="relative">
@@ -7755,66 +7977,62 @@ function FinanceView({ user, invoices, analytics, viewMode, setViewMode, onUpdat
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-zinc-100 p-1 rounded-2xl">
-            <button 
-              onClick={() => setStatusFilter('all')}
-              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'all' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-            >
-              All
-            </button>
-            <button 
-              onClick={() => setStatusFilter('pending')}
-              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'pending' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-            >
-              Pending
-            </button>
-            <button 
-              onClick={() => setStatusFilter('paid')}
-              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'paid' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-            >
-              Paid
-            </button>
-          </div>
-          
-          <select 
-            className="bg-white border border-zinc-200 rounded-2xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="all">All Types</option>
-            <option value="sourcing_fee">Sourcing Fee</option>
-            <option value="shipping_fee">Shipping Fee</option>
-            <option value="product_payment">Product Payment</option>
-            <option value="receipt">Receipt</option>
-          </select>
-
           <Button variant="outline" className="rounded-2xl font-black text-[10px] uppercase tracking-widest px-6 h-10 border-zinc-200 shadow-sm">
             <Download className="w-4 h-4 mr-2" /> Export
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label={isAdmin ? "Platform Volume" : "Total Spend"} value={`$${(analytics.totalSpend / 1000).toFixed(1)}k`} icon={<CreditCard className="w-5 h-5" />} />
-        <StatCard label="Pending Payments" value={`$${analytics.pendingPayments.toLocaleString()}`} icon={<Clock className="w-5 h-5" />} color="secondary" />
-        <StatCard label="Total Invoices" value={analytics.invoiceCount.toString()} icon={<Receipt className="w-5 h-5" />} color="blue" />
-        {isAdmin && (
-          <StatCard label="Platform Revenue" value={`$${(analytics.totalSpend * 0.05 / 1000).toFixed(1)}k`} icon={<Zap className="w-5 h-5" />} color="green" trend="5% commission" />
-        )}
-      </div>
+      {activeTab === 'dashboard' ? (
+        <FinancialDashboard shipments={shipments} />
+      ) : (
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard label={isAdmin ? "Platform Volume" : "Total Spend"} value={`$${(analytics.totalSpend / 1000).toFixed(1)}k`} icon={<CreditCard className="w-5 h-5" />} />
+            <StatCard label="Pending Payments" value={`$${analytics.pendingPayments.toLocaleString()}`} icon={<Clock className="w-5 h-5" />} color="secondary" />
+            <StatCard label="Total Invoices" value={analytics.invoiceCount.toString()} icon={<Receipt className="w-5 h-5" />} color="blue" />
+            {isAdmin && (
+              <StatCard label="Platform Revenue" value={`$${(analytics.totalSpend * 0.05 / 1000).toFixed(1)}k`} icon={<Zap className="w-5 h-5" />} color="green" trend="5% commission" />
+            )}
+          </div>
 
-      {/* Detailed Invoices Table */}
-      <div className="space-y-12">
-        {isAgentOrAdmin ? (
-          <>
-            {renderInvoiceList(offerFees, "Offer Fees (Receipts & Invoices)")}
-            {renderInvoiceList(productPayments, "Product Sourcing Payments")}
-          </>
-        ) : (
-          renderInvoiceList(filteredInvoices)
-        )}
-      </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Filter className="w-4 h-4 text-zinc-400 mr-2" />
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 px-4 rounded-xl border border-zinc-200 bg-white text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select 
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-9 px-4 rounded-xl border border-zinc-200 bg-white text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="all">All Types</option>
+              <option value="sourcing_fee">Sourcing Fee</option>
+              <option value="shipping_fee">Shipping Fee</option>
+              <option value="product_payment">Product Payment</option>
+              <option value="receipt">Receipt</option>
+            </select>
+          </div>
+
+          <div className="space-y-12">
+            {isAgentOrAdmin ? (
+              <>
+                {renderInvoiceList(offerFees, "Offer Fees (Receipts & Invoices)")}
+                {renderInvoiceList(productPayments, "Product Sourcing Payments")}
+              </>
+            ) : (
+              renderInvoiceList(filteredInvoices)
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -8001,6 +8219,21 @@ function ShipmentMap({ origin, destination, currentLoc, rfqs = [] }: { origin: s
           <text textAnchor="middle" y={-10} className="text-[8px] font-black fill-zinc-900 uppercase tracking-widest">{destination}</text>
         </Marker>
 
+        {/* Current Location */}
+        {currentLoc && currentLoc !== origin && currentLoc !== destination && (
+          <Marker coordinates={currentCoord}>
+            <motion.g
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            >
+              <circle r={8} fill="#FF6321" fillOpacity={0.2} />
+              <circle r={4} fill="#FF6321" stroke="#FFFFFF" strokeWidth={2} />
+            </motion.g>
+            <text textAnchor="middle" y={-15} className="text-[8px] font-black fill-primary uppercase tracking-widest">Current: {currentLoc}</text>
+          </Marker>
+        )}
+
         {/* RFQ Markers */}
         {rfqs.map((rfq) => {
           const rfqCoord = LOCATION_COORDS[rfq.origin_country] || originCoord;
@@ -8122,6 +8355,85 @@ function ShipmentMap({ origin, destination, currentLoc, rfqs = [] }: { origin: s
         </div>
       </div>
     </div>
+  );
+}
+
+function StatusUpdateForm({ shipment, onUpdate }: { shipment: Shipment, onUpdate: () => void }) {
+  const [status, setStatus] = useState(shipment.status);
+  const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/shipments/${shipment.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status, location, description })
+      });
+      if (response.ok) {
+        onUpdate();
+        setLocation('');
+        setDescription('');
+      }
+    } catch (error) {
+      console.error('Failed to update shipment:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="p-6 bg-white border border-zinc-100 shadow-sm">
+      <h3 className="font-black text-lg tracking-tight text-zinc-900 mb-4 uppercase tracking-widest">Update Status</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">New Status</label>
+          <select 
+            value={status} 
+            onChange={(e) => setStatus(e.target.value as any)}
+            className="w-full h-12 px-4 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+          >
+            <option value="pending">Pending</option>
+            <option value="booked">Booked</option>
+            <option value="in_transit">In Transit</option>
+            <option value="customs">Customs</option>
+            <option value="delivered">Delivered</option>
+            <option value="delayed">Delayed</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Current Location</label>
+          <Input 
+            value={location} 
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="e.g. Port of Shanghai"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Description</label>
+          <textarea 
+            value={description} 
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Container loaded on vessel"
+            className="w-full p-4 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all min-h-[100px]"
+          />
+        </div>
+        <Button 
+          type="submit" 
+          disabled={loading}
+          className="w-full h-12 rounded-xl font-black text-xs uppercase tracking-widest bg-zinc-900 hover:bg-zinc-800 text-white shadow-lg shadow-zinc-900/20"
+        >
+          {loading ? 'Updating...' : 'Post Update'}
+        </Button>
+      </form>
+    </Card>
   );
 }
 
@@ -8279,6 +8591,10 @@ function ShipmentDetails({ user, shipment, onBack, onChat }: { user: User, shipm
         </div>
 
         <div className="space-y-6">
+          {(user.role === 'shipping_agent' || user.role === 'admin') && (
+            <StatusUpdateForm shipment={shipment} onUpdate={() => {}} />
+          )}
+
           <Card className="p-6">
             <h3 className="font-bold mb-4">Quick Stats</h3>
             <div className="space-y-4">
@@ -8342,6 +8658,10 @@ function CreateShipmentForm({ user, rfqs, onCancel, onSuccess }: { user: User, r
       eta: formData.get('eta'),
       transit_time: formData.get('transit_time'),
       delivery_date: formData.get('delivery_date'),
+      purchase_cost: Number(formData.get('purchase_cost')),
+      freight_cost: Number(formData.get('freight_cost')),
+      customs_cost: Number(formData.get('customs_cost')),
+      selling_price: Number(formData.get('selling_price')),
     };
 
     setLoading(true);
@@ -8536,9 +8856,30 @@ function CreateShipmentForm({ user, rfqs, onCancel, onSuccess }: { user: User, r
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Estimated Delivery Date</label>
-            <Input name="estimated_delivery" type="date" required />
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Estimated Delivery Date</label>
+              <Input name="estimated_delivery" type="date" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Selling Price ($)</label>
+              <Input name="selling_price" type="number" step="0.01" placeholder="0.00" required />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Purchase Cost ($)</label>
+              <Input name="purchase_cost" type="number" step="0.01" placeholder="0.00" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Freight Cost ($)</label>
+              <Input name="freight_cost" type="number" step="0.01" placeholder="0.00" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Customs Cost ($)</label>
+              <Input name="customs_cost" type="number" step="0.01" placeholder="0.00" required />
+            </div>
           </div>
 
           <div className="pt-4 flex gap-3">

@@ -37,9 +37,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        ((request.auth.token.email == 'fatimaezahra.msik@gmail.com' && request.auth.token.email_verified == true) ||
-         (request.auth.token.email == 'morad.mimou@gmail.com' && request.auth.token.email_verified == true) ||
-         (request.auth.token.email == 'admin@test.com' && request.auth.token.email_verified == true) ||
+        ((request.auth.token.email == 'fatimaezahra.msik@gmail.com') ||
+         (request.auth.token.email == 'morad.mimou@gmail.com') ||
+         (request.auth.token.email == 'admin@test.com') ||
          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
@@ -57,7 +57,7 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['uid', 'name', 'email', 'role', 'createdAt', 'isBlocked', 'status', 'updatedAt', 'id', 'avatar_url', 'phone', 'preferences']) &&
+      return hasOnlyAllowedFields(['uid', 'name', 'email', 'role', 'createdAt', 'isBlocked', 'status', 'updatedAt', 'id', 'avatar_url', 'phone', 'preferences', 'type', 'company_details']) &&
              data.uid is string &&
              data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
              isValidEmail(data.email) &&
@@ -78,13 +78,14 @@ service cloud.firestore {
     }
 
     function isValidShipment(data) {
-      return hasOnlyAllowedFields(['id', 'rfqId', 'userId', 'status', 'trackingNumber', 'carrier', 'origin', 'destination', 'estimatedDelivery', 'createdAt', 'updatedAt']) &&
-             data.userId is string &&
-             data.rfqId is string;
+      return hasOnlyAllowedFields(['id', 'rfq_id', 'customer_id', 'customer_uid', 'sourcing_agent_id', 'sourcing_agent_uid', 'shipping_agent_id', 'shipping_agent_uid', 'offer_id', 'status', 'tracking_number', 'carrier', 'origin', 'destination', 'estimated_delivery', 'last_update', 'updates', 'created_at', 'updated_at', 'transport_mode', 'packing_details', 'total_value', 'shipping_line', 'booking_number', 'bl_number', 'free_time', 'cut_off', 'etd', 'eta', 'transit_time', 'delivery_date', 'purchase_cost', 'freight_cost', 'customs_cost', 'selling_price']) &&
+             data.customer_id is number &&
+             data.rfq_id is number &&
+             data.status in ["pending", "booked", "in_transit", "customs", "delivered", "delayed"];
     }
 
     function isValidOffer(data) {
-      return hasOnlyAllowedFields(['id', 'rfqId', 'sourcingAgentId', 'shippingAgentId', 'status', 'unit_price', 'total_exw', 'shipping_cost', 'customs_cost', 'commission', 'total_cost', 'production_time', 'delivery_deadline', 'validity_date', 'shipping_details', 'createdAt', 'updatedAt', 'quantity', 'quality_level', 'delivery_mode', 'delivery_sub_mode', 'volume_cbm', 'gross_weight_kg', 'offer_validity', 'payment_terms', 'exw_charges', 'total_cfr', 'remarks', 'supplier_name', 'supplier_address', 'supplier_contact_person', 'supplier_email', 'hs_code', 'offer_pi_url']) &&
+      return hasOnlyAllowedFields(['id', 'rfqId', 'sourcingAgentId', 'shippingAgentId', 'status', 'unit_price', 'total_exw', 'shipping_cost', 'customs_cost', 'commission', 'total_cost', 'production_time', 'delivery_deadline', 'validity_date', 'shipping_details', 'createdAt', 'updatedAt', 'quantity', 'quality_level', 'delivery_mode', 'delivery_sub_mode', 'volume_cbm', 'gross_weight_kg', 'offer_validity', 'payment_terms', 'exw_charges', 'total_cfr', 'remarks', 'supplier_name', 'supplier_address', 'supplier_contact_person', 'supplier_email', 'hs_code', 'offer_pi_url', 'moq']) &&
              data.rfqId is string;
     }
 
@@ -94,6 +95,14 @@ service cloud.firestore {
              data.offerId is string &&
              data.customerId is string &&
              data.status in ["pending", "sourcing_priced", "shipping_priced", "ready", "paid", "shipped", "delivered", "cancelled"];
+    }
+
+    function isValidDocument(data) {
+      return hasOnlyAllowedFields(['id', 'name', 'type', 'url', 'rfqId', 'shipmentId', 'ownerId', 'sharedWith', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.type in ["proforma_invoice", "commercial_invoice", "packing_list", "freight_quotation", "other"] &&
+             data.url is string &&
+             data.ownerId is string;
     }
 
     function getRole(userId) {
@@ -165,11 +174,31 @@ service cloud.firestore {
     }
 
     match /shipments/{shipmentId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isAuthenticated() && (
+        resource.data.customer_uid == request.auth.uid || 
+        resource.data.sourcing_agent_uid == request.auth.uid || 
+        resource.data.shipping_agent_uid == request.auth.uid || 
+        isAdmin()
+      );
       allow create: if isAuthenticated() && isValidShipment(request.resource.data);
-      allow update: if isAuthenticated() && isValidShipment(request.resource.data) && 
-                      (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidShipment(request.resource.data) && (
+        resource.data.customer_uid == request.auth.uid || 
+        resource.data.sourcing_agent_uid == request.auth.uid || 
+        resource.data.shipping_agent_uid == request.auth.uid || 
+        isAdmin()
+      );
       allow delete: if isAdmin();
+    }
+
+    match /documents/{documentId} {
+      allow read: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || 
+                                          request.auth.uid in resource.data.sharedWith || 
+                                          isAdmin());
+      allow create: if isAuthenticated() && isValidDocument(request.resource.data) && 
+                      request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidDocument(request.resource.data) && 
+                      (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /chats/{chatId} {

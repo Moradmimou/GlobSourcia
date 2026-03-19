@@ -54,7 +54,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, onNavigate, onQuickRfq, lang, onLangChange, t }) => {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans selection:bg-primary/10 selection:text-primary transition-colors duration-300">
+    <div className="min-h-dvh bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans selection:bg-primary/10 selection:text-primary transition-colors duration-300">
       {/* Hero Section */}
       <section className="pt-40 pb-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">

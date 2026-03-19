@@ -80,7 +80,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
   };
 
   return (
-    <div className="min-h-screen flex bg-white overflow-hidden selection:bg-primary/10 selection:text-primary">
+    <div className="min-h-dvh flex bg-white overflow-hidden selection:bg-primary/10 selection:text-primary">
       {/* Left Side: Branding & Value Props (Desktop Only) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-zinc-950 items-center justify-center p-20">
         <div className="absolute inset-0 overflow-hidden">
@@ -137,7 +137,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
       </div>
 
       {/* Right Side: Registration Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 pt-24 md:p-12 lg:p-24 bg-white dark:bg-zinc-950 relative overflow-y-auto transition-colors duration-300">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 pt-24 pb-[var(--safe-bottom)] md:p-12 lg:p-24 bg-white dark:bg-zinc-950 relative overflow-y-auto transition-colors duration-300">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary lg:hidden" />
         
         <button 
@@ -163,7 +163,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
           </div>
 
           <div className="space-y-8">
-            <Card className="p-8 md:p-10 border-none shadow-2xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 rounded-[2.5rem] transition-colors">
+            <Card className="p-4 sm:p-8 md:p-10 border-none shadow-2xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-900 rounded-[2.5rem] transition-colors">
               {error && (
                 <div className="mb-8 p-4 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl text-red-600 dark:text-red-400 text-sm font-bold flex items-center gap-3">
                   <Shield className="w-5 h-5 shrink-0" />
@@ -174,7 +174,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 ml-1">{t('register.fullName')}</label>
+                    <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 ml-1">{t('register.fullName')}</label>
                     <div className="relative group">
                       <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-300 dark:text-zinc-700 group-focus-within:text-primary transition-all duration-300" />
                       <Input
@@ -186,7 +186,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 ml-1">{t('register.company')}</label>
+                    <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 ml-1">{t('register.company')}</label>
                     <div className="relative group">
                       <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-300 dark:text-zinc-700 group-focus-within:text-primary transition-all duration-300" />
                       <Input
@@ -200,7 +200,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 ml-1">{t('register.emailAddress')}</label>
+                  <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 ml-1">{t('register.emailAddress')}</label>
                   <div className="relative group">
                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-300 dark:text-zinc-700 group-focus-within:text-primary transition-all duration-300" />
                     <Input
@@ -214,7 +214,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 ml-1">{t('register.password')}</label>
+                  <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 ml-1">{t('register.password')}</label>
                   <div className="relative group">
                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-300 dark:text-zinc-700 group-focus-within:text-primary transition-all duration-300" />
                     <Input
@@ -235,7 +235,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBack, onLogin, onS
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 ml-1">{t('register.accountRole')}</label>
+                  <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 ml-1">{t('register.accountRole')}</label>
                   <div className="relative">
                     <select 
                       name="role" 

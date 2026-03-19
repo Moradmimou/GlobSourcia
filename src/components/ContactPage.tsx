@@ -43,7 +43,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigate, la
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white font-sans selection:bg-primary/10 selection:text-primary transition-colors duration-300">
+    <div className="min-h-dvh bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white font-sans selection:bg-primary/10 selection:text-primary transition-colors duration-300">
       <main className="pt-40 pb-32">
         <div className="max-w-7xl mx-auto px-6">
           {/* Header Section */}

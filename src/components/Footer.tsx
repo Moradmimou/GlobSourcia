@@ -47,7 +47,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, currentLang, onLangC
   };
 
   return (
-    <footer className="bg-zinc-950 text-white pt-24 pb-12 overflow-hidden relative">
+    <footer className="bg-zinc-950 text-white pt-24 pb-[calc(3rem+var(--safe-bottom))] overflow-hidden relative">
       {/* Decorative background element */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] -z-10" />
       

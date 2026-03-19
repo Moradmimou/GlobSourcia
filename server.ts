@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import firebaseConfig from './firebase-applet-config.json';
 
 // Initialize Database
@@ -37,6 +38,8 @@ try {
   console.error('[FIREBASE] Failed to initialize Firebase Admin:', err);
   // We don't exit here as some parts might still work
 }
+
+const firestore = getFirestore();
 
 // Initialize Database Tables
 db.exec(`
@@ -146,13 +149,21 @@ db.exec(`
     tracking_number TEXT UNIQUE,
     carrier TEXT,
     rfq_id INTEGER,
-    status TEXT DEFAULT 'pending', -- 'pending', 'in_transit', 'customs', 'delivered', 'delayed'
+    customer_id INTEGER,
+    sourcing_agent_id INTEGER,
+    shipping_agent_id INTEGER,
+    offer_id INTEGER,
+    status TEXT DEFAULT 'pending', -- 'pending', 'booked', 'in_transit', 'customs', 'delivered', 'delayed'
     origin TEXT,
     destination TEXT,
     estimated_delivery TEXT,
     transport_mode TEXT,
     packing_details TEXT,
     total_value REAL,
+    purchase_cost REAL,
+    freight_cost REAL,
+    customs_cost REAL,
+    selling_price REAL,
     shipping_line TEXT,
     booking_number TEXT,
     bl_number TEXT,
@@ -164,7 +175,11 @@ db.exec(`
     delivery_date TEXT,
     last_update DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(rfq_id) REFERENCES rfqs(id)
+    FOREIGN KEY(rfq_id) REFERENCES rfqs(id),
+    FOREIGN KEY(customer_id) REFERENCES users(id),
+    FOREIGN KEY(sourcing_agent_id) REFERENCES users(id),
+    FOREIGN KEY(shipping_agent_id) REFERENCES users(id),
+    FOREIGN KEY(offer_id) REFERENCES offers(id)
   );
 
   CREATE TABLE IF NOT EXISTS shipment_items (
@@ -344,6 +359,42 @@ async function createNotification(userId: number, title: string, message: string
     }
   } catch (error) {
     console.error('Failed to create notification:', error);
+  }
+}
+
+function getUidById(userId: number | string): string | null {
+  if (!userId) return null;
+  const user: any = db.prepare('SELECT uid FROM users WHERE id = ?').get(userId);
+  return user ? user.uid : null;
+}
+
+async function syncShipmentToFirestore(shipmentId: number | string) {
+  try {
+    const shipment: any = db.prepare('SELECT * FROM shipments WHERE id = ?').get(shipmentId);
+    if (!shipment) return;
+
+    const updates = db.prepare('SELECT * FROM shipment_updates WHERE shipment_id = ? ORDER BY date DESC').all(shipmentId);
+
+    const customer_uid = getUidById(shipment.customer_id);
+    const sourcing_agent_uid = getUidById(shipment.sourcing_agent_id);
+    const shipping_agent_uid = getUidById(shipment.shipping_agent_id);
+
+    const firestoreData = {
+      ...shipment,
+      updates,
+      customer_uid,
+      sourcing_agent_uid,
+      shipping_agent_uid,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Remove any fields that shouldn't be in Firestore or are null
+    delete firestoreData.id;
+
+    await firestore.collection('shipments').doc(shipmentId.toString()).set(firestoreData, { merge: true });
+    console.log(`[FIRESTORE SYNC] Shipment #${shipmentId} synced successfully with ${updates.length} updates.`);
+  } catch (error) {
+    console.error(`[FIRESTORE SYNC ERROR] Shipment #${shipmentId}:`, error);
   }
 }
 
@@ -1127,7 +1178,8 @@ async function startServer() {
     const { 
       tracking_number, carrier, rfq_ids, origin, destination, estimated_delivery,
       transport_mode, packing_details, total_value, shipping_line, booking_number,
-      bl_number, free_time, cut_off, etd, eta, transit_time, delivery_date
+      bl_number, free_time, cut_off, etd, eta, transit_time, delivery_date,
+      purchase_cost, freight_cost, customs_cost, selling_price
     } = req.body;
     
     // rfq_ids should be an array
@@ -1135,18 +1187,36 @@ async function startServer() {
       return res.status(400).json({ error: 'At least one RFQ ID is required' });
     }
 
+    // Get the first RFQ to derive the linked agents and customer
+    const firstRfq: any = db.prepare('SELECT * FROM rfqs WHERE id = ?').get(rfq_ids[0]);
+    if (!firstRfq) {
+      return res.status(400).json({ error: 'Invalid RFQ ID' });
+    }
+
+    // Find the accepted offer for this RFQ to get the sourcing agent
+    const acceptedOffer: any = db.prepare('SELECT * FROM offers WHERE rfq_id = ? AND status = \'accepted\'').get(firstRfq.id);
+
     const result = db.prepare(`
       INSERT INTO shipments (
         tracking_number, carrier, origin, destination, estimated_delivery, 
         transport_mode, packing_details, total_value, shipping_line, booking_number,
         bl_number, free_time, cut_off, etd, eta, transit_time, delivery_date,
-        status
+        status, customer_id, sourcing_agent_id, shipping_agent_id, offer_id,
+        purchase_cost, freight_cost, customs_cost, selling_price
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       tracking_number, carrier, origin, destination, estimated_delivery,
       transport_mode, packing_details, total_value, shipping_line, booking_number,
-      bl_number, free_time, cut_off, etd, eta, transit_time, delivery_date
+      bl_number, free_time, cut_off, etd, eta, transit_time, delivery_date,
+      firstRfq.customer_id, 
+      acceptedOffer ? acceptedOffer.sourcing_agent_id : null,
+      req.user.role === 'shipping_agent' ? req.user.id : null,
+      acceptedOffer ? acceptedOffer.id : null,
+      purchase_cost || 0,
+      freight_cost || 0,
+      customs_cost || 0,
+      selling_price || 0
     );
     
     const shipmentId = result.lastInsertRowid;
@@ -1179,6 +1249,9 @@ async function startServer() {
       VALUES (?, ?, ?)
     `).run(shipmentId, origin, 'Shipment created and pending pickup');
     
+    // Sync to Firestore
+    syncShipmentToFirestore(shipmentId);
+
     res.json({ id: shipmentId });
   });
 
@@ -1195,6 +1268,36 @@ async function startServer() {
     
     shipment.items = items;
     res.json(shipment);
+  });
+
+  app.patch('/api/shipments/:id', authenticate, (req: any, res) => {
+    if (req.user.role !== 'shipping_agent' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const { status, location, description, purchase_cost, freight_cost, customs_cost, selling_price } = req.body;
+    
+    db.prepare(`
+      UPDATE shipments 
+      SET status = COALESCE(?, status), 
+          purchase_cost = COALESCE(?, purchase_cost),
+          freight_cost = COALESCE(?, freight_cost),
+          customs_cost = COALESCE(?, customs_cost),
+          selling_price = COALESCE(?, selling_price),
+          last_update = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(status || null, purchase_cost || null, freight_cost || null, customs_cost || null, selling_price || null, req.params.id);
+    
+    if (location || description) {
+      db.prepare(`
+        INSERT INTO shipment_updates (shipment_id, location, description)
+        VALUES (?, ?, ?)
+      `).run(req.params.id, location || null, description || 'Status updated');
+    }
+    
+    // Sync to Firestore
+    syncShipmentToFirestore(req.params.id);
+    
+    res.json({ success: true });
   });
 
   app.get('/api/shipments', authenticate, (req: any, res) => {

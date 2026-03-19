@@ -254,14 +254,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ t, isDarkMode })
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[60dvh]">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 transition-colors duration-300">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8 transition-colors duration-300">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -306,7 +306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ t, isDarkMode })
             )}>
               <stat.icon className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{stat.label}</p>
+            <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{stat.label}</p>
             <h3 className="text-3xl font-black text-zinc-900 dark:text-white mt-1">{stat.value}</h3>
           </motion.div>
         ))}
@@ -314,7 +314,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ t, isDarkMode })
 
       {/* Main Content Tabs */}
       <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
-        <div className="flex border-b border-zinc-100 dark:border-zinc-800 p-2">
+        <div className="flex border-b border-zinc-100 dark:border-zinc-800 p-2 overflow-x-auto scrollbar-hide">
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'users', label: 'User Management', icon: Users },
@@ -335,7 +335,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ t, isDarkMode })
           ))}
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {activeTab === 'overview' && (
             <div className="space-y-8">
               <div className="grid lg:grid-cols-2 gap-8">

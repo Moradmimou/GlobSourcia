@@ -322,7 +322,7 @@ export default function ChatView({
   return (
     <div className={cn(
       "flex bg-white dark:bg-zinc-950 overflow-hidden",
-      isFloating ? "h-full w-full" : "h-[calc(100vh-120px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm"
+      isFloating ? "h-full w-full" : "h-[calc(100dvh-120px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm"
     )}>
       {/* Sidebar */}
       <div className={cn(

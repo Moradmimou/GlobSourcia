@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   if (!isPublicView) return null;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 transition-colors duration-300">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 transition-colors duration-300 pt-[var(--safe-top)]">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative">
         <div className="flex items-center">
           <button 
@@ -159,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 overflow-hidden"
           >
-            <div className="px-6 py-8 space-y-6">
+            <div className="px-6 py-8 space-y-6 max-h-[calc(100dvh-var(--safe-top)-5rem)] overflow-y-auto">
               <button 
                 onClick={() => {
                   onNavigate('services');

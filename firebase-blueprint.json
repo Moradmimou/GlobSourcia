@@ -103,10 +103,40 @@
       "description": "Tracking information for goods",
       "type": "object",
       "properties": {
-        "trackingNumber": { "type": "string" },
-        "status": { "type": "string" },
+        "tracking_number": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["pending", "booked", "in_transit", "customs", "delivered", "delayed"] 
+        },
         "origin": { "type": "string" },
-        "destination": { "type": "string" }
+        "destination": { "type": "string" },
+        "customer_id": { "type": "number" },
+        "customer_uid": { "type": "string" },
+        "sourcing_agent_id": { "type": "number" },
+        "sourcing_agent_uid": { "type": "string" },
+        "shipping_agent_id": { "type": "number" },
+        "shipping_agent_uid": { "type": "string" },
+        "rfq_id": { "type": "number" },
+        "offer_id": { "type": "number" },
+        "carrier": { "type": "string" },
+        "estimated_delivery": { "type": "string" },
+        "last_update": { "type": "string" },
+        "updates": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "date": { "type": "string" },
+              "location": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          } 
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "purchase_cost": { "type": "number" },
+        "freight_cost": { "type": "number" },
+        "customs_cost": { "type": "number" },
+        "selling_price": { "type": "number" }
       }
     },
     "Chat": {
@@ -171,6 +201,24 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["rfqId", "offerId", "customerId", "status", "details"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Logistics and financial documents",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["proforma_invoice", "commercial_invoice", "packing_list", "freight_quotation", "other"] },
+        "url": { "type": "string" },
+        "rfqId": { "type": "string" },
+        "shipmentId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "sharedWith": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "url", "ownerId"]
     }
   },
   "firestore": {
@@ -209,6 +257,10 @@
     "/sample_requests/{requestId}": {
       "schema": "SampleRequest",
       "description": "Product sample requests"
+    },
+    "/documents/{documentId}": {
+      "schema": "Document",
+      "description": "Logistics and financial documents"
     }
   }
 }
