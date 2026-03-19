@@ -374,7 +374,7 @@ function ConfirmationModal({
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard' | 'requests' | 'create-rfq' | 'rfq-details' | 'shipments' | 'shipment-details' | 'finance' | 'analytics' | 'offers' | 'settings' | 'profile' | 'help' | 'services' | 'security' | 'contact' | 'careers' | 'privacy' | 'terms' | 'cookies' | 'blogs' | 'blog-post' | 'messages' | 'admin-dashboard'>('landing');
+  const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard' | 'requests' | 'create-rfq' | 'rfq-details' | 'shipments' | 'shipment-details' | 'create-shipment' | 'finance' | 'analytics' | 'offers' | 'settings' | 'profile' | 'help' | 'services' | 'security' | 'contact' | 'careers' | 'privacy' | 'terms' | 'cookies' | 'blogs' | 'blog-post' | 'messages' | 'admin-dashboard'>('landing');
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -985,27 +985,27 @@ export default function App() {
         )}
 
         {view === 'security' && (
-          <SecurityPage onBack={() => setView('landing')} onRegister={() => setView('register')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} t={t} />
+          <SecurityPage onBack={() => setView('landing')} onRegister={() => setView('register')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} />
         )}
 
         {view === 'contact' && (
-          <ContactPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} t={t} />
+          <ContactPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} />
         )}
 
         {view === 'careers' && (
-          <CareersPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} t={t} />
+          <CareersPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} />
         )}
 
         {view === 'privacy' && (
-          <PrivacyPolicyPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} t={t} />
+          <PrivacyPolicyPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} />
         )}
 
         {view === 'terms' && (
-          <TermsAndConditionsPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} t={t} />
+          <TermsAndConditionsPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} />
         )}
 
         {view === 'cookies' && (
-          <CookiePolicyPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} t={t} />
+          <CookiePolicyPage onBack={() => setView('landing')} onNavigate={(v) => setView(v as any)} lang={lang} onLangChange={setLang} />
         )}
 
         {view === 'blogs' && (
@@ -2178,7 +2178,7 @@ function SettingsView({ user, onUpdate, t, lang, setLang }: { user: User, onUpda
                   value={settings.preferences?.currency ?? ''}
                   onChange={e => setSettings({
                     ...settings, 
-                    preferences: { ...(settings.preferences || { notifications: true, language: lang }), currency: e.target.value }
+                    preferences: { ...(settings.preferences || { notifications: true, emailNotifications: true, language: lang }), currency: e.target.value }
                   })}
                 >
                   <option value="USD">USD ($)</option>
@@ -2196,7 +2196,7 @@ function SettingsView({ user, onUpdate, t, lang, setLang }: { user: User, onUpda
                     const newLang = e.target.value;
                     setSettings({
                       ...settings, 
-                      preferences: { ...(settings.preferences || { notifications: true, currency: 'USD' }), language: newLang }
+                      preferences: { ...(settings.preferences || { notifications: true, emailNotifications: true, currency: 'USD' }), language: newLang }
                     });
                     setLang(newLang);
                   }}
