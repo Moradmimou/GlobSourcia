@@ -1,0 +1,214 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Application user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { 
+          "type": "string", 
+          "enum": ["customer", "shipping_agent", "sourcing_agent", "admin"] 
+        },
+        "type": { "type": "string", "enum": ["company", "personal"] },
+        "company_details": { "type": "object" },
+        "phone": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "preferences": { "type": "object" },
+        "isBlocked": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "blocked", "deactivated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Product supplier/manufacturer",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "country": { "type": "string" },
+        "address": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "country"]
+    },
+    "RFQ": {
+      "title": "RFQ",
+      "description": "Request for Quotation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["draft", "submitted", "approved", "rejected", "paid", "assigned", "sourcing", "shipping", "offered", "ordered", "shipped"] 
+        },
+        "origin_country": { "type": "string" },
+        "destination_country": { "type": "string" },
+        "delivery_mode": { "type": "string" },
+        "quality_level": { "type": "string" },
+        "total_budget": { "type": "number" },
+        "currency": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "status"]
+    },
+    "Offer": {
+      "title": "Offer",
+      "description": "Quote for an RFQ",
+      "type": "object",
+      "properties": {
+        "rfqId": { "type": "string" },
+        "sourcingAgentId": { "type": "string" },
+        "status": { "type": "string" },
+        "unit_price": { "type": "number" },
+        "total_exw": { "type": "number" },
+        "shipping_cost": { "type": "number" },
+        "customs_cost": { "type": "number" },
+        "commission": { "type": "number" },
+        "total_cost": { "type": "number" },
+        "production_time": { "type": "string" },
+        "delivery_deadline": { "type": "string" },
+        "validity_date": { "type": "string" },
+        "quantity": { "type": "number" },
+        "quality_level": { "type": "string" },
+        "delivery_mode": { "type": "string" },
+        "delivery_sub_mode": { "type": "string" },
+        "volume_cbm": { "type": "number" },
+        "gross_weight_kg": { "type": "number" },
+        "offer_validity": { "type": "string" },
+        "payment_terms": { "type": "string" },
+        "exw_charges": { "type": "number" },
+        "total_cfr": { "type": "number" },
+        "remarks": { "type": "string" },
+        "supplier_name": { "type": "string" },
+        "supplier_address": { "type": "string" },
+        "supplier_contact_person": { "type": "string" },
+        "supplier_email": { "type": "string", "format": "email" },
+        "hs_code": { "type": "string" },
+        "offer_pi_url": { "type": "string" },
+        "moq": { "type": "number" }
+      }
+    },
+    "Shipment": {
+      "title": "Shipment",
+      "description": "Tracking information for goods",
+      "type": "object",
+      "properties": {
+        "trackingNumber": { "type": "string" },
+        "status": { "type": "string" },
+        "origin": { "type": "string" },
+        "destination": { "type": "string" }
+      }
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Conversation between two users",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participants"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual chat message",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "text"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "type"]
+    },
+    "SampleRequest": {
+      "title": "SampleRequest",
+      "description": "Request for a product sample",
+      "type": "object",
+      "properties": {
+        "rfqId": { "type": "string" },
+        "offerId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "sourcingAgentId": { "type": "string" },
+        "shippingAgentId": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["pending", "sourcing_priced", "shipping_priced", "ready", "paid", "shipped", "delivered", "cancelled"] 
+        },
+        "details": { "type": "string" },
+        "sampleCost": { "type": "number" },
+        "shippingCost": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid"] },
+        "paymentProof": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["rfqId", "offerId", "customerId", "status", "details"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/rfqs/{rfqId}": {
+      "schema": "RFQ",
+      "description": "Freight and sourcing requests"
+    },
+    "/offers/{offerId}": {
+      "schema": "Offer",
+      "description": "Agent offers"
+    },
+    "/shipments/{shipmentId}": {
+      "schema": "Shipment",
+      "description": "Shipment tracking"
+    },
+    "/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Chat sessions"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Chat messages"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Supplier directory"
+    },
+    "/sample_requests/{requestId}": {
+      "schema": "SampleRequest",
+      "description": "Product sample requests"
+    }
+  }
+}

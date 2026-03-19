@@ -1,0 +1,195 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (Auth UID)
+    // Fields:
+    //   - uid: string (required) - Auth UID
+    //   - name: string (required) - Full name
+    //   - email: string (required) - Email address
+    //   - role: string (required) - enum [customer, shipping_agent, sourcing_agent, admin]
+    //   - createdAt: timestamp (optional)
+    //
+    // Collection: rfqs
+    // Document ID: rfqId
+    // Fields:
+    //   - userId: string (required) - Owner UID
+    //   - status: string (required) - enum [draft, pending, offered, shipping, assigned, sourcing, paid]
+    //   - createdAt: timestamp (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((request.auth.token.email == 'fatimaezahra.msik@gmail.com' && request.auth.token.email_verified == true) ||
+         (request.auth.token.email == 'morad.mimou@gmail.com' && request.auth.token.email_verified == true) ||
+         (request.auth.token.email == 'admin@test.com' && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'name', 'email', 'role', 'createdAt', 'isBlocked', 'status', 'updatedAt', 'id', 'avatar_url', 'phone', 'preferences']) &&
+             data.uid is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             isValidEmail(data.email) &&
+             data.role in ['customer', 'shipping_agent', 'sourcing_agent', 'admin'];
+    }
+
+    function isValidSupplier(data) {
+      return hasOnlyAllowedFields(['name', 'category', 'country', 'address', 'contactPerson', 'contactEmail', 'rating', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.category is string &&
+             data.country is string;
+    }
+
+    function isValidRFQ(data) {
+      return hasOnlyAllowedFields(['userId', 'status', 'createdAt', 'id', 'origin_country', 'destination_country', 'delivery_mode', 'quality_level', 'total_budget', 'currency', 'payment_proof', 'billing_type', 'payment_status', 'payment_date', 'sourcing_agent_id', 'products', 'updatedAt']) &&
+             data.userId is string &&
+             data.status in ["draft", "submitted", "approved", "rejected", "paid", "assigned", "sourcing", "shipping", "offered", "ordered", "shipped"];
+    }
+
+    function isValidShipment(data) {
+      return hasOnlyAllowedFields(['id', 'rfqId', 'userId', 'status', 'trackingNumber', 'carrier', 'origin', 'destination', 'estimatedDelivery', 'createdAt', 'updatedAt']) &&
+             data.userId is string &&
+             data.rfqId is string;
+    }
+
+    function isValidOffer(data) {
+      return hasOnlyAllowedFields(['id', 'rfqId', 'sourcingAgentId', 'shippingAgentId', 'status', 'unit_price', 'total_exw', 'shipping_cost', 'customs_cost', 'commission', 'total_cost', 'production_time', 'delivery_deadline', 'validity_date', 'shipping_details', 'createdAt', 'updatedAt', 'quantity', 'quality_level', 'delivery_mode', 'delivery_sub_mode', 'volume_cbm', 'gross_weight_kg', 'offer_validity', 'payment_terms', 'exw_charges', 'total_cfr', 'remarks', 'supplier_name', 'supplier_address', 'supplier_contact_person', 'supplier_email', 'hs_code', 'offer_pi_url']) &&
+             data.rfqId is string;
+    }
+
+    function isValidSampleRequest(data) {
+      return hasOnlyAllowedFields(['rfqId', 'offerId', 'customerId', 'sourcingAgentId', 'shippingAgentId', 'status', 'details', 'sampleCost', 'shippingCost', 'totalCost', 'paymentStatus', 'paymentProof', 'trackingNumber', 'createdAt', 'updatedAt', 'id']) &&
+             data.rfqId is string &&
+             data.offerId is string &&
+             data.customerId is string &&
+             data.status in ["pending", "sourcing_priced", "shipping_priced", "ready", "paid", "shipped", "delivered", "cancelled"];
+    }
+
+    function getRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+
+    function canChat(uid1, uid2) {
+      let role1 = getRole(uid1);
+      let role2 = getRole(uid2);
+      return (role1 == 'customer' && role2 == 'shipping_agent') ||
+             (role1 == 'shipping_agent' && role2 == 'customer') ||
+             (role1 == 'sourcing_agent' && role2 == 'shipping_agent') ||
+             (role1 == 'shipping_agent' && role2 == 'sourcing_agent') ||
+             (role1 == 'admin' || role2 == 'admin');
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated(); // Allow reading other users for chat UI
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role != 'admin' || isAdmin());
+      allow update: if isAuthenticated() && 
+                      (
+                        (isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin())) || 
+                        isAdmin()
+                      );
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /rfqs/{rfqId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidRFQ(request.resource.data);
+      allow update: if isAuthenticated() && isValidRFQ(request.resource.data) && 
+                      (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /offers/{offerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidOffer(request.resource.data);
+      allow update: if isAuthenticated() && isValidOffer(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /sample_requests/{requestId} {
+      allow read: if isAuthenticated() && (resource.data.customerId == request.auth.uid || 
+                                          resource.data.sourcingAgentId == request.auth.uid || 
+                                          resource.data.shippingAgentId == request.auth.uid || 
+                                          isAdmin());
+      allow create: if isAuthenticated() && isValidSampleRequest(request.resource.data) && 
+                      request.resource.data.customerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidSampleRequest(request.resource.data) && 
+                      (resource.data.customerId == request.auth.uid || 
+                       resource.data.sourcingAgentId == request.auth.uid || 
+                       resource.data.shippingAgentId == request.auth.uid || 
+                       isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /shipments/{shipmentId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidShipment(request.resource.data);
+      allow update: if isAuthenticated() && isValidShipment(request.resource.data) && 
+                      (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && 
+                      request.auth.uid in request.resource.data.participants &&
+                      canChat(request.resource.data.participants[0], request.resource.data.participants[1]);
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      allow create: if isAuthenticated() && 
+                      request.auth.uid == request.resource.data.senderId &&
+                      request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

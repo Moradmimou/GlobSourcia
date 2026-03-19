@@ -1,0 +1,89 @@
+1503:                  "absolute top-full mt-2 bg-white border border-zinc-100 rounded-2xl shadow-2xl p-2 min-w-[160px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50",
+1726:              className="bg-white rounded-[2.5rem] w-full max-w-6xl h-[85vh] overflow-hidden shadow-2xl border border-zinc-200 relative"
+1730:                className="absolute top-6 right-6 z-[210] p-3 bg-white/80 backdrop-blur-md hover:bg-zinc-100 rounded-2xl transition-all shadow-sm active:scale-95"
+1814:              <button type="button" className="absolute -bottom-2 -right-2 p-2 bg-white rounded-xl shadow-lg border border-zinc-100 text-primary hover:scale-110 transition-transform">
+1939:                className="w-full min-h-[120px] rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+2228:            : active ? "bg-white text-primary" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors"
+2635:              <Card key={rfq.id} className="p-6 border border-zinc-200 bg-white shadow-xl shadow-zinc-200/10 rounded-[2rem] hover:scale-[1.02] transition-all cursor-pointer group" onClick={() => onSelectRfq(rfq)}>
+2834:                    className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'all' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600")}
+2841:                      className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'drafts' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600")}
+2848:                    className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'pending' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600")}
+2854:                    className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'active' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600")}
+2861:                  className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-white text-zinc-900 shadow-sm"
+2980:                <tbody className="divide-y divide-zinc-100 bg-white">
+3324:                  className="w-12 h-12 bg-white/90 hover:bg-white text-zinc-900 rounded-2xl shadow-2xl backdrop-blur-md pointer-events-auto transition-all flex items-center justify-center hover:scale-110 active:scale-90"
+3330:                  className="w-12 h-12 bg-white/90 hover:bg-white text-zinc-900 rounded-2xl shadow-2xl backdrop-blur-md pointer-events-auto transition-all flex items-center justify-center hover:scale-110 active:scale-90"
+3338:                <div key={i} className={cn("h-1.5 rounded-full transition-all duration-500", i === currentPhotoIndex ? "bg-primary w-6 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "bg-white/40 w-1.5")} />
+3402:      <div className="w-10 h-10 shrink-0 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-primary shadow-sm">
+3423:            <div className="inline-flex items-center gap-3 px-5 py-2 bg-white/10 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+3438:              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-emerald-400">
+3447:              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-primary">
+3459:          <div className="bg-white/5 backdrop-blur-2xl rounded-[3.5rem] p-12 border border-white/10 space-y-10 min-w-[380px] text-center shadow-2xl">
+3943:                                      className="w-10 h-10 rounded-full bg-white text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center shadow-xl"
+4327:                <div className="w-16 h-16 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0 shadow-inner backdrop-blur-md">
+4677:                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-[120px]" />
+4679:                <div className="absolute top-0 left-0 w-20 h-20 bg-white text-primary rounded-br-[3rem] flex items-center justify-center">
+4685:                    <div className="w-14 h-14 rounded-2xl bg-white/10 text-white flex items-center justify-center shadow-inner">
+4695:                    <label className="flex items-center gap-5 p-8 bg-white/10 rounded-[2rem] cursor-pointer hover:bg-white/20 transition-all border border-white/10 group">
+4699:                          className="w-7 h-7 rounded-lg border-2 border-white/30 bg-transparent text-white focus:ring-white transition-all cursor-pointer appearance-none checked:bg-white"
+4716:                          ? "bg-white/10 text-white/30 cursor-not-allowed"
+4717:                          : "bg-white text-primary hover:bg-zinc-900 hover:text-white shadow-2xl shadow-black/20 active:scale-[0.98]"
+4882:    <Card className="p-8 bg-white border-zinc-100 shadow-2xl rounded-[2.5rem]">
+4958:    <Card className="p-8 bg-white border-zinc-100 shadow-xl rounded-[2.5rem]">
+5233:                      <div className="w-16 h-16 rounded-2xl bg-white shadow-xl shadow-blue-200/50 flex items-center justify-center text-blue-600 shrink-0 relative z-10">
+5248:                      <div className="w-16 h-16 rounded-2xl bg-white shadow-xl shadow-emerald-200/50 flex items-center justify-center text-emerald-600 shrink-0 relative z-10">
+5265:                            className="flex-1 md:flex-none px-6 py-3 bg-white border border-zinc-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:bg-zinc-50 cursor-pointer transition-all text-center shadow-sm"
+5291:                      <div className="w-16 h-16 rounded-2xl bg-white shadow-xl shadow-red-200/50 flex items-center justify-center text-red-600 shrink-0">
+5305:                      <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white shrink-0">
+5313:                        <Button variant="outline" className="flex-1 md:flex-none text-red-400 border-white/10 hover:bg-white/5 rounded-xl h-12" onClick={handleRejectRFQ} disabled={isSubmitting}>
+5328:                <Card className="md:col-span-2 p-8 bg-white border-zinc-100 shadow-sm rounded-[2.5rem] flex flex-col relative overflow-hidden group">
+5357:                      <div className="w-20 h-20 rounded-3xl bg-white border-2 border-zinc-50 shadow-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+5371:                      <div className="w-20 h-20 rounded-3xl bg-white border-2 border-zinc-50 shadow-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+5385:                    <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-zinc-900">
+5392:                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-zinc-100/50">
+5396:                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-zinc-100/50">
+5400:                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-zinc-100/50">
+5451:                        : "bg-white hover:bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+5463:                          selectedOffer?.id === offer.id ? "bg-white/10 text-primary" : "bg-zinc-100 text-zinc-900"
+5564:                        <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400">
+5620:                        <Card key={req.id} className="p-8 bg-white border-zinc-100 rounded-[2.5rem] shadow-sm">
+5768:              <div className="h-px bg-white/10" />
+5771:                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+5781:                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+5795:            <Card className="p-6 bg-white border border-zinc-100 rounded-[2.5rem] space-y-4 shadow-sm">
+5805:                      <Button variant="outline" size="sm" className="bg-white text-zinc-900 border-none rounded-xl font-black text-[10px] uppercase tracking-widest" onClick={() => window.open(rfq.payment_proof)}>
+5822:          <Card className="p-8 bg-white border-zinc-100 shadow-xl shadow-zinc-200/40 rounded-[2.5rem] relative overflow-hidden">
+5878:    <Card className="p-10 border-none shadow-2xl shadow-zinc-200/50 bg-white rounded-[2.5rem]">
+5948:    <Card className="p-10 border-none shadow-2xl shadow-zinc-200/50 bg-white rounded-[2.5rem]">
+6064:            className="w-full h-24 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+6095:      <div className="w-20 h-20 rounded-[2.5rem] bg-white border border-zinc-100 shadow-2xl shadow-zinc-200/50 flex items-center justify-center transition-transform duration-700 hover:scale-110">
+6137:          active ? "bg-primary border-primary/20 scale-110" : "bg-white border-zinc-100"
+6186:          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-zinc-200/50">
+6221:                      <tbody className="divide-y divide-zinc-100 bg-white">
+6294:                    <Card key={rfq.id} className="p-6 bg-white border-none shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => onSelectRfq(rfq)}>
+6361:                      <tbody className="divide-y divide-zinc-100 bg-white">
+6453:                    <Card key={shipment.id} className="p-0 overflow-hidden group border-none shadow-2xl shadow-zinc-200/50 hover:shadow-zinc-300/50 transition-all duration-500 bg-white">
+6482:                            <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200 flex items-center justify-center shadow-sm">
+6492:                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-1 rounded-full border border-zinc-100 shadow-sm">
+6500:                            <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200 flex items-center justify-center shadow-sm">
+6517:                      <div className="px-8 py-4 bg-white border-t border-zinc-100 flex items-center gap-4 overflow-x-auto">
+6613:            <tbody className="divide-y divide-zinc-100 bg-white">
+6639:                      <Button variant="ghost" size="sm" className="rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-zinc-100" onClick={() => onChat(`INV-${invoice.id.toString().padStart(5, '0')}`, 'Invoice')}><MessageSquare className="w-4 h-4" /></Button>
+6640:                      <Button variant="ghost" size="sm" className="rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-zinc-100"><Eye className="w-4 h-4" /></Button>
+6684:            <Card key={invoice.id} className="p-6 border border-zinc-200 bg-white shadow-xl shadow-zinc-200/10 rounded-[2rem] hover:scale-[1.02] transition-all group">
+6755:              className="pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
+6766:              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'all' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+6772:              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'pending' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+6778:              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'paid' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+6785:            className="bg-white border border-zinc-200 rounded-2xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20"
+7123:      <div className="absolute bottom-6 left-6 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-white shadow-xl">
+7175:            <Card key={rfq.id} className="p-4 bg-white border border-zinc-100 shadow-sm hover:shadow-md transition-all">
+7203:          <Card className="p-10 bg-white border-none shadow-2xl shadow-zinc-200/50 overflow-hidden group">
+7215:              <div className="bg-white p-2 z-10">
+7224:          <Card className="p-10 bg-white border-none shadow-2xl shadow-zinc-200/50 overflow-hidden">
+7232:                    i === 0 ? "bg-zinc-900 text-white scale-110 shadow-lg shadow-zinc-900/20" : "bg-white border border-zinc-200 text-zinc-400"
+7404:                        : "bg-white border-zinc-100 text-zinc-600 hover:border-zinc-200"
+7410:                        selectedRfqIds.includes(rfq.id) ? "bg-primary border-primary" : "bg-white border-zinc-200"
+7444:                className="w-full h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" 
+7520:                  className="flex-1 h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" 
+7534:                  className="flex-1 h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" 
